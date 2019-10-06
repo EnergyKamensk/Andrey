@@ -1,0 +1,130 @@
+package {
+	import flash.display.*;
+	import flash.media.*;
+	import flash.events.*;
+	import flash.geom.*;
+	import flash.net.*;
+	import flash.ui.*;
+	import flash.utils.*;
+	import flash.text.*;
+ 
+	public class Main extends Sprite {
+		private var api_id:Number=7154346;
+		private var url:String="http://ic4.101.ru:8000/region_energy_124?";
+		private var sound:Sound;
+		private var music:SoundChannel;
+		private var bounds:Rectangle;
+		private var maxMove:Number;
+		private var minuteTimer:Timer=new Timer(1000);
+ 
+		public function Main():void {
+			if (LoaderInfo(root.loaderInfo).parameters.api_id!=api_id) {
+				is_copy_mc.is_copy_tf.text='Приложение находится здесь\nhttp://vkontakte.ru/app'+api_id;
+				is_copy_mc.x=0;
+				is_copy_mc.y=0;
+				pause_btn.visible = false;
+				play_btn.visible=false;
+				status_tf.visible=false;
+				
+				time_tf.visible=false;
+				volumeSlider.visible=false;
+			} else {
+				var cm = new ContextMenu();
+				cm.hideBuiltInItems();
+				var p1:ContextMenuItem=new ContextMenuItem('«Радио»');
+				
+				
+				
+				cm.customItems.push(p1);
+				this.contextMenu=cm;
+ 
+				
+				time_tf.autoSize=TextFieldAutoSize.LEFT;
+				
+				pause_btn.visible = false;
+				play_btn.addEventListener(MouseEvent.CLICK,playSound);
+				pause_btn.addEventListener(MouseEvent.CLICK,pauseSound);
+ 
+				addEventListener(Event.ENTER_FRAME, enterHandler);
+				volumeSlider.addEventListener(MouseEvent.MOUSE_DOWN, startScroll);
+				
+				stage.addEventListener(MouseEvent.MOUSE_UP, stopScroll);
+				
+				
+				maxMove=35;
+				bounds=new Rectangle(volumeSlider.x,volumeSlider.y,- maxMove,0);
+				var scrolling:Boolean=false;
+ 
+				function startScroll(e:Event):void {
+					scrolling=true;
+					volumeSlider.startDrag(false,bounds);
+				}
+ 
+				function stopScroll(e:Event):void {
+					scrolling=false;
+					volumeSlider.stopDrag();
+				}
+ 
+				function enterHandler(e:Event):void {
+					if (scrolling==true) {
+						setVolume(1-((bounds.x-volumeSlider.x)/maxMove));
+					}
+				}
+ 
+				function setVolume(vol:Number) {
+					if (music!=null) {
+						var mod:SoundTransform = new SoundTransform();
+						mod.volume=vol;
+						music.soundTransform=mod;
+					}
+				}
+			}
+		}
+ 
+		private function playSound(e:MouseEvent):void {
+			play_btn.visible=false;
+			pause_btn.visible = true;
+			var request:URLRequest=new URLRequest(url+'?'+Math.random());
+			sound = new Sound();
+			
+			sound.addEventListener(HTTPStatusEvent.HTTP_STATUS,onError);
+			
+			sound.load(request);
+			music=sound.play();
+			var mod:SoundTransform = new SoundTransform();
+			mod.volume=1-((bounds.x-volumeSlider.x)/maxMove);
+			music.soundTransform=mod;
+			
+			minuteTimer.addEventListener(TimerEvent.TIMER, onTick);
+			minuteTimer.start();
+		}
+		
+		private function onError(event:Event):void {
+			status_tf.text = 'Ошибка';
+		}
+		
+		private function pauseSound(e:MouseEvent):void {
+			play_btn.visible=true;
+			pause_btn.visible = false;
+			music.stop();
+			minuteTimer.stop();
+			minuteTimer.reset();
+			time_tf.text="0:00:00";
+		}
+ 
+		function onTick(event:TimerEvent):void {
+			var sec=event.target.currentCount;
+			var min=Math.floor(sec/60);
+			var hour=Math.floor(min/60);
+			sec%=60;
+			if (sec<10) {
+				sec='0'+sec;
+			}
+			min%=60;
+			if (min<10) {
+				min='0'+min;
+			}
+			hour%=24;
+			time_tf.text=hour+":"+min+":"+sec;
+		}
+	}
